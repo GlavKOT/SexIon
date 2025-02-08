@@ -1,7 +1,6 @@
 package ru.glkot.sexIon.messaging;
 
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -10,17 +9,13 @@ import ru.glkot.sexIon.Sxlib;
 import ru.glkot.sexIon.playerdata.PlayerData;
 
 import java.io.*;
-import java.lang.reflect.Type;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 
 import static org.bukkit.Bukkit.getLogger;
-import static org.bukkit.Bukkit.getServer;
 
 public class Receiver {
     public static void startServer(Sxlib sxlib) {
