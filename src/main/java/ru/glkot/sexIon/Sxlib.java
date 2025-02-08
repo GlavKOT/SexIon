@@ -19,21 +19,17 @@ import java.util.*;
 
 public final class Sxlib extends JavaPlugin {
 
-    private static final Logger log = LoggerFactory.getLogger(Sxlib.class);
     public UUID id;
     public JSONObject config;
-    private File confile;
-    public Map<String,Blueprint> blueprintMap;
-    public Map<String,Map<Integer,ItemStack>> oldHotBars;
+    public Map<String, BlueprintBuilder> blueprintMap;
+    public Map<String, Map<Integer, ItemStack>> oldHotBars;
     public List<String> titleTickers;
-    public Map<String, StringGetter> stringGetterMap;
     private static Sxlib instance;
 
 
     public static JSONObject getCon() {
-        File confile = Path.of(Path.of("").toAbsolutePath().toString(),"sex-config.json").toFile();
-        try {
-            FileInputStream fis = new FileInputStream(confile);
+        File confile = Path.of(Path.of("").toAbsolutePath().toString(), "sex-config.json").toFile();
+        try (FileInputStream fis = new FileInputStream(confile)) {
             return new JSONObject(new String(fis.readAllBytes()));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -43,50 +39,50 @@ public final class Sxlib extends JavaPlugin {
     @Override
     public void onEnable() {
         // Plugin startup logic
-        stringGetterMap = new HashMap<>();
         instance = this;
         blueprintMap = new HashMap<>();
         oldHotBars = new HashMap<>();
         titleTickers = new ArrayList<>();
 
-        confile = Path.of(Path.of("").toAbsolutePath().toString(),"sex-config.json").toFile();
-        try {
-            if (confile.exists()) {
-                FileInputStream fis = new FileInputStream(confile);
+        File confile = Path.of(Path.of("").toAbsolutePath().toString(), "sex-config.json").toFile();
+        if (confile.exists()) {
+            try (FileInputStream fis = new FileInputStream(confile)) {
                 config = new JSONObject(new String(fis.readAllBytes()));
-                if (!config.keySet().contains("server-type")) config.put("server-type","test");
-                if (!config.keySet().contains("max-sex")) config.put("max-sex","1");
-                if (!config.keySet().contains("veslo-ip")) config.put("veslo-ip","0.0.0.0");
+                if (!config.keySet().contains("server-type")) config.put("server-type", "test");
+                if (!config.keySet().contains("max-sex")) config.put("max-sex", "1");
+                if (!config.keySet().contains("veslo-ip")) config.put("veslo-ip", "0.0.0.0");
                 if (!config.keySet().contains("sex-settings")) {
                     JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("default-max-time",600);
-                    config.put("sex-setting",jsonObject);
+                    jsonObject.put("default-max-time", 600);
+                    config.put("sex-setting", jsonObject);
                 }
-            } else {
-                config = new JSONObject();
-                config.put("server-type","test");
-                config.put("max-sex","1");
-                config.put("veslo-ip","0.0.0.0");
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("default-max-time",600);
-                config.put("sex-setting",jsonObject);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-            Writer writer = new FileWriter(confile);
+        } else {
+            config = new JSONObject();
+            config.put("server-type", "test");
+            config.put("max-sex", "1");
+            config.put("veslo-ip", "0.0.0.0");
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("default-max-time", 600);
+            config.put("sex-setting", jsonObject);
+        }
+        try (Writer writer = new FileWriter(confile)) {
             writer.write(config.toString(4));
             writer.flush();
-            writer.close();
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
         Bukkit.getServer().sendMessage(Component.text("===== SEX-LIB LOADED =====").color(TextColor.color(163, 77, 148)));
-        Bukkit.getPluginManager().registerEvents(new ScrollinListener(),this);
-        Bukkit.getPluginManager().registerEvents(new MainListener(),this);
+        Bukkit.getPluginManager().registerEvents(new ScrollinListener(), this);
+        Bukkit.getPluginManager().registerEvents(new MainListener(), this);
         CommandListener.nahuy(this);
         Path.of(Path.of("").toAbsolutePath().toString(), "PlayerData").toFile().mkdir();
         Receiver.startServer(this);
         id = UUID.randomUUID();
-        config.put("server-id",id);
+        config.put("server-id", id);
         try {
             Writer writer = new FileWriter(confile);
             writer.write(config.toString(4));
@@ -101,8 +97,8 @@ public final class Sxlib extends JavaPlugin {
 
     }
 
-    public void genId () {
-        Receiver.receiveID("id-add", getCon().getString("server-id"),config.getString("server-type"));
+    public void genId() {
+        Receiver.receiveID("id-add", getCon().getString("server-id"), config.getString("server-type"));
     }
 
     public static Sxlib get() {
@@ -112,23 +108,23 @@ public final class Sxlib extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        for (Blueprint blueprint: blueprintMap.values()) {
-            for (UUID itemDisplay: blueprint.outline.getFaces().values()) {
+        for (BlueprintBuilder blueprintBuilder : blueprintMap.values()) {
+            for (UUID itemDisplay : blueprintBuilder.outline.getFaces().values()) {
                 Bukkit.getEntity(itemDisplay).remove();
             }
-            for (Player player: Bukkit.getOnlinePlayers()) {
-                player.removeScoreboardTag("bluered."+ blueprint.getId());
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.removeScoreboardTag("bluered." + blueprintBuilder.getId());
             }
         }
 
-        for (String s: titleTickers) {
+        for (String s : titleTickers) {
 
             Player player = Bukkit.getPlayer(s);
 
             if (player != null) {
                 for (int i = 0; i <= 8; i++) {
-                    Map<Integer,ItemStack> stackMap = oldHotBars.get(s);
-                    player.getInventory().setItem(i,stackMap.get(i));
+                    Map<Integer, ItemStack> stackMap = oldHotBars.get(s);
+                    player.getInventory().setItem(i, stackMap.get(i));
                 }
             }
 
@@ -141,7 +137,7 @@ public final class Sxlib extends JavaPlugin {
             }
         }
 
-        Receiver.receiveID("id-remove", getCon().getString("server-id"),config.getString("server-type"));
+        Receiver.receiveID("id-remove", getCon().getString("server-id"), config.getString("server-type"));
 
 
     }

@@ -200,9 +200,9 @@ public class CommandListener {
                 Player player = (Player) commandSender;
                 Location location = player.getTargetBlockExact(100).getLocation();
                 player.sendMessage(location.toString());
-                Blueprint blueprint = new Blueprint(location.clone().add(2,1,2),location.clone().add(-2,5,-2));
-                blueprint.redactor(player);
-                Sxlib.get().blueprintMap.put(blueprint.getId().toString(),blueprint);
+                BlueprintBuilder blueprintBuilder = new BlueprintBuilder(location.clone().add(2,1,2),location.clone().add(-2,5,-2));
+                blueprintBuilder.redactor(player);
+                Sxlib.get().blueprintMap.put(blueprintBuilder.getId().toString(), blueprintBuilder);
                 return false;
             }
         });

@@ -59,9 +59,19 @@
       <id>sonatype</id>
       <url>https://oss.sonatype.org/content/groups/public/</url>
     </repository>
+    <repository>
+      <id>codemc-snapshots</id>
+      <url>https://repo.codemc.io/repository/maven-snapshots/</url>
+    </repository>
   </repositories>
 
   <dependencies>
+    <dependency>
+      <groupId>net.wesjd</groupId>
+      <artifactId>anvilgui</artifactId>
+      <version>1.10.4-SNAPSHOT</version>
+    </dependency>
+
     <dependency>
       <groupId>io.papermc.paper</groupId>
       <artifactId>paper-api</artifactId>

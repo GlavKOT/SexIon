@@ -7,7 +7,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class Buttons {
-    static ItemStack blank () {
+    public static ItemStack blank() {
         ItemStack item = new ItemStack(Material.PAPER);
         ItemMeta meta = item.getItemMeta();
         meta.setItemModel(new NamespacedKey("general","button/nothing"));

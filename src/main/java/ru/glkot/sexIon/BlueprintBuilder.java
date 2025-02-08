@@ -15,15 +15,15 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 
-public class Blueprint {
+public class BlueprintBuilder {
 
-    public Blueprint(Location loc1, Location loc2) {
+    public BlueprintBuilder(Location loc1, Location loc2) {
         vertex1 = loc1;
         vertex2 = loc2;
         uuid = UUID.randomUUID();
     }
 
-    private Blueprint(Location v1, Location v2, String id) {
+    private BlueprintBuilder(Location v1, Location v2, String id) {
         vertex1 = v1;
         vertex2 = v2;
         uuid = UUID.fromString(id);
@@ -119,7 +119,7 @@ public class Blueprint {
         Sxlib.get().blueprintMap.put(uuid.toString(),this);
     }
 
-    public static Blueprint getFromID (String id, World world) {
+    public static BlueprintBuilder getFromID (String id, World world) {
         File file = Path.of("bluetemp",id).toFile();
         try (FileInputStream stream = new FileInputStream(file)) {
             JSONObject js = new JSONObject(new String(stream.readAllBytes()));
@@ -131,7 +131,7 @@ public class Blueprint {
             JSONObject v1 = js.getJSONObject("v1");
             JSONObject v2 = js.getJSONObject("v2");
 
-            return new Blueprint(new Location(world,v1.getInt("x"),v1.getInt("y"),v1.getInt("z")),new Location (world, v2.getInt("x"),v2.getInt("y"),v2.getInt("z")),id);
+            return new BlueprintBuilder(new Location(world,v1.getInt("x"),v1.getInt("y"),v1.getInt("z")),new Location (world, v2.getInt("x"),v2.getInt("y"),v2.getInt("z")),id);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
