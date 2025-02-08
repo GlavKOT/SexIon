@@ -229,7 +229,7 @@ public class CommandListener {
                     item.setItemMeta(meta);
                     list.add(item);
                 }
-                player.openInventory(new Scrollin(list, "null").page(0));
+                player.openInventory(new Scrollin(list).page(0));
 
                 return false;
             }

@@ -58,14 +58,13 @@ public class ScrollinListener implements Listener {
     @EventHandler
     void huy(InventoryClickEvent e) {
         if (e.getCurrentItem() != null && (e.getCurrentItem().equals(Buttons.left()) || e.getCurrentItem().equals(Buttons.right()))) {
-            int id = Integer.parseInt(PlainTextComponentSerializer.plainText().serialize( e.getView().getTopInventory().getItem(0).getItemMeta().lore().get(0)));
-            String uid = PlainTextComponentSerializer.plainText().serialize( e.getView().getTopInventory().getItem(0).getItemMeta().lore().get(1));
-            String action = PlainTextComponentSerializer.plainText().serialize( e.getView().getTopInventory().getItem(0).getItemMeta().lore().get(2));
-            int max = Integer.parseInt(PlainTextComponentSerializer.plainText().serialize( e.getView().getTopInventory().getItem(0).getItemMeta().lore().get(3)));
-            Scrollin scrollin = new Scrollin(uid,action);
+            int id = e.getView().getTopInventory().getItem(0).getAmount();
+            String uid = PlainTextComponentSerializer.plainText().serialize(e.getView().getTopInventory().getItem(0).displayName()).replaceAll("\\[","").replaceAll("]","");
+            Scrollin scrollin = Scrollin.get(uid);
+            Bukkit.getServer().sendMessage(Component.text(uid));
 
             if (e.getSlot() == 48 && id >0) e.getWhoClicked().openInventory(scrollin.page(id - 1));
-            if (e.getSlot() == 50 && id < max -1) e.getWhoClicked().openInventory(scrollin.page(id + 1));
+            if (e.getSlot() == 50 && id < scrollin.max -1) e.getWhoClicked().openInventory(scrollin.page(id + 1));
         }
 
         if (e.getCurrentItem() != null && e.getSlot() > 8 && e.getSlot() < 45) {
@@ -80,7 +79,7 @@ public class ScrollinListener implements Listener {
                         case "sexion" -> {
 
                             e.getWhoClicked().sendMessage(Component.text("Open sexions"));
-                            Scrollin scrollin = new Scrollin(sexlist(),"admin");
+                            Scrollin scrollin = new Scrollin(sexlist());
 
                             e.getWhoClicked().openInventory(scrollin.page(0));
                         }
@@ -105,7 +104,7 @@ public class ScrollinListener implements Listener {
                             }
 
                             e.getWhoClicked().sendMessage(Component.text("Open models"));
-                            Scrollin scrollin = new Scrollin(itemStacks,"models");
+                            Scrollin scrollin = new Scrollin(itemStacks);
 
                             e.getWhoClicked().openInventory(scrollin.page(0));
                         }
@@ -130,7 +129,7 @@ public class ScrollinListener implements Listener {
                             }
 
                             e.getWhoClicked().sendMessage(Component.text("Open buttons"));
-                            Scrollin scrollin = new Scrollin(itemStacks,"buttons");
+                            Scrollin scrollin = new Scrollin(itemStacks);
 
                             e.getWhoClicked().openInventory(scrollin.page(0));
                         }
@@ -151,7 +150,7 @@ public class ScrollinListener implements Listener {
                     e.getWhoClicked().sendMessage(Component.text("Open sexions"));
 
 
-                    Scrollin scrollin = new Scrollin(sexlist(),"admin");
+                    Scrollin scrollin = new Scrollin(sexlist());
 
                     e.getWhoClicked().openInventory(scrollin.page(0));
                 }
@@ -161,12 +160,12 @@ public class ScrollinListener implements Listener {
                     itemStacks.add(AdminMenu.IT(Material.BLAST_FURNACE,"GENERATE","gen-sexion",args));
                     if (SexIon.get(UUID.fromString(args)).generated()) itemStacks.add(AdminMenu.IT(Material.ENDER_PEARL,"TELEPORT","tp-sexion",args));
                     itemStacks.add(AdminMenu.IT(Material.ARMADILLO_SCUTE,"START MATCH","start-match",args));
-                    Scrollin scrollin = new Scrollin(itemStacks,"blya ya hz");
+                    Scrollin scrollin = new Scrollin(itemStacks);
                     e.getWhoClicked().openInventory(scrollin.page(0));
                 }
                 case "delete-sexion" -> {
                     SexIon.get(UUID.fromString(args)).kill();
-                    Scrollin scrollin = new Scrollin(sexlist(),"admin");
+                    Scrollin scrollin = new Scrollin(sexlist());
                     e.getWhoClicked().openInventory(scrollin.page(0));
                 }
                 case "gen-sexion" -> {
@@ -175,7 +174,7 @@ public class ScrollinListener implements Listener {
                     itemStacks.add(AdminMenu.IT(Material.BLAST_FURNACE,"GENERATE","gen-sexion",args));
                     if (SexIon.get(UUID.fromString(args)).generated()) itemStacks.add(AdminMenu.IT(Material.ENDER_PEARL,"TELEPORT","tp-sexion",args));
                     itemStacks.add(AdminMenu.IT(Material.ARMADILLO_SCUTE,"START MATCH","start-match",args));
-                    Scrollin scrollin = new Scrollin(itemStacks,"blya ya hz");
+                    Scrollin scrollin = new Scrollin(itemStacks);
                     e.getWhoClicked().openInventory(scrollin.page(0));
                     if (!SexIon.get(UUID.fromString(args)).generated()) SexIon.get(UUID.fromString(args)).generate();
 

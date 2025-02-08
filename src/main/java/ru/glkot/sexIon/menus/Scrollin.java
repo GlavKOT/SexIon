@@ -18,48 +18,33 @@ import org.bukkit.persistence.PersistentDataType;
 import org.checkerframework.checker.units.qual.N;
 import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
 
+import javax.management.AttributeChangeNotification;
+import javax.management.Notification;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static ru.glkot.sexIon.menus.Buttons.*;
 
 public class Scrollin {
 
+    private static Map<String,Scrollin> scrollinMap;
+    public final List<ItemStack> items;
+    public final String id;
+    public final int max;
 
-    private final List<ItemStack> items;
-    private final String id;
-    private final String action;
-    private final int max;
-
-    public Scrollin (List<ItemStack> items, String action) {
+    public Scrollin (List<ItemStack> items) {
+        if (scrollinMap == null) scrollinMap = new HashMap<>();
         this.items = items;
         this.id = UUID.randomUUID().toString();
-        this.action = action;
         int mx = items.size() / 36;
         double temp = items.size();
         if ((temp / 36) - mx > 0) this.max = mx + 1;
         else this.max = mx;
-        try {
-            Bukkit.getWorld("world").getPersistentDataContainer().set(new NamespacedKey("huy",id), PersistentDataType.STRING, encodeItemStackListToBase64(items));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        scrollinMap.put(id,this);
+        System.err.println(scrollinMap);
     }
-    public Scrollin (String id, String action) {
-        try {
-            this.items = decodeItemStackListFromBase64(Bukkit.getWorld("world").getPersistentDataContainer().get(new NamespacedKey("huy",id),PersistentDataType.STRING));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        this.id = id;
-        this.action = action;
-        int mx = items.size() / 36;
-        double temp = items.size();
-        if ((temp / 36) - mx > 0) this.max = mx + 1;
-        else this.max = mx;
+    public static Scrollin get(String id) {
+        return scrollinMap.get(id);
     }
 
     public Inventory page (int id) {
@@ -67,7 +52,7 @@ public class Scrollin {
         Inventory inv = Bukkit.createInventory(null,54, component);
 
 
-        inv.setItem(0,exit(id,this.id, action,max));
+        inv.setItem(0,exit(id,this.id));
         inv.setItem(1,blank());
         inv.setItem(2,blank());
         inv.setItem(3,blank());
@@ -96,39 +81,5 @@ public class Scrollin {
 
 
         return inv;
-    }
-    // Кодируем список ItemStack в Base64
-    public static String encodeItemStackListToBase64(List<ItemStack> items) throws IOException {
-        // Создаем YAML-конфигурацию
-        YamlConfiguration yaml = new YamlConfiguration();
-
-        // Сохраняем каждый ItemStack в конфигурацию
-        for (int i = 0; i < items.size(); i++) {
-            yaml.set("item" + i, items.get(i));
-        }
-
-        // Преобразуем YAML в строку
-
-        // Кодируем YAML-строку в Base64
-        return yaml.saveToString();
-    }
-
-    // Декодируем список ItemStack из Base64
-    public static List<ItemStack> decodeItemStackListFromBase64(String base64) throws IOException {
-        // Загружаем YAML-конфигурацию
-        YamlConfiguration yaml = new YamlConfiguration();
-        try {
-            yaml.loadFromString(base64);
-        } catch (InvalidConfigurationException e) {
-            throw new RuntimeException(e);
-        }
-
-        // Восстанавливаем список ItemStack
-        List<ItemStack> items = new java.util.ArrayList<>();
-        for (String key : yaml.getKeys(false)) {
-            items.add(yaml.getItemStack(key));
-        }
-
-        return items;
     }
 }

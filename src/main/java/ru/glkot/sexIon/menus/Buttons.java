@@ -37,17 +37,12 @@ public class Buttons {
         item.setItemMeta(meta);
         return item;
     }
-    static ItemStack exit(int id, String base64, String action, int max) {
+    static ItemStack exit(int id, String name) {
         ItemStack item = new ItemStack(Material.REDSTONE);
         ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text(name));
         meta.setItemModel(new NamespacedKey("general","button/quit"));
         meta.setHideTooltip(true);
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(id));
-        lore.add(Component.text(base64));
-        lore.add(Component.text(action));
-        lore.add(Component.text(max));
-        meta.lore(lore);
         item.setItemMeta(meta);
         item.setAmount(id+1);
         return item;
