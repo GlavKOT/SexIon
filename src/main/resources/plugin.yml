@@ -1,0 +1,15 @@
+name: SexIon
+version: 0.0.1
+main: ru.glkot.sexIon.Sxlib
+description: "Sex-Ion (SESSION) API (AUTHOR PIDOR IBANIY)"
+author: "Glav_KOT"
+commands:
+  menu: {}
+  sex-ion: {}
+  blueprint: {}
+  test-menu: {}
+  playerdata: {}
+  guibychar: {}
+  spawnprop: {}
+  outline: {}
+api-version: '1.21.4'
