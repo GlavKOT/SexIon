@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -23,6 +24,7 @@ public final class Sxlib extends JavaPlugin {
     public JSONObject config;
     public Map<String, BlueprintBuilder> blueprintMap;
     public Map<String, Map<Integer, ItemStack>> oldHotBars;
+    public Map<String,BlueprintViewer> blueprintViewers;
     public List<String> titleTickers;
     private static Sxlib instance;
 
@@ -41,6 +43,7 @@ public final class Sxlib extends JavaPlugin {
         // Plugin startup logic
         instance = this;
         blueprintMap = new HashMap<>();
+        blueprintViewers = new HashMap<>();
         oldHotBars = new HashMap<>();
         titleTickers = new ArrayList<>();
 
@@ -110,10 +113,23 @@ public final class Sxlib extends JavaPlugin {
         // Plugin shutdown logic
         for (BlueprintBuilder blueprintBuilder : blueprintMap.values()) {
             for (UUID itemDisplay : blueprintBuilder.outline.getFaces().values()) {
-                Bukkit.getEntity(itemDisplay).remove();
+                if ( Bukkit.getEntity(itemDisplay) != null) {
+                    Bukkit.getEntity(itemDisplay).remove();
+                }
             }
             for (Player player : Bukkit.getOnlinePlayers()) {
                 player.removeScoreboardTag("bluered." + blueprintBuilder.getId());
+            }
+        }
+
+        for (BlueprintViewer blueprintBuilder : blueprintViewers.values()) {
+            for (BlockDisplay boba : blueprintBuilder.displays.values()) {
+                boba.remove();
+            }
+            for (UUID itemDisplay : blueprintBuilder.outline.getFaces().values()) {
+                if ( Bukkit.getEntity(itemDisplay) != null) {
+                    Bukkit.getEntity(itemDisplay).remove();
+                }
             }
         }
 

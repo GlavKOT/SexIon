@@ -29,6 +29,7 @@ public class AdminMenu {
         items.add(IT(Material.POPPED_CHORUS_FRUIT,"SEX-IONS","open-list","sexion"));
         items.add(IT(Material.SHULKER_SHELL,"Models","open-list","models"));
         items.add(IT(Material.END_CRYSTAL,"Buttons","open-list","buttons"));
+        items.add(IT(Material.BLUE_DYE,"Blueprints","open-list","blueprints"));
         Scrollin scrollin = new Scrollin(items);
         return scrollin.page(0);
     }

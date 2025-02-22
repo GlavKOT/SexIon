@@ -7,19 +7,28 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import ru.glkot.sexIon.BlueprintBuilder;
+import ru.glkot.sexIon.BlueprintViewer;
 import ru.glkot.sexIon.SexIon;
+import ru.glkot.sexIon.Sxlib;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.nio.file.Path;
+import java.util.*;
 
 import static ru.glkot.sexIon.CommandListener.sxOutText;
 
@@ -123,6 +132,52 @@ public class ScrollinListener implements Listener {
 
                             e.getWhoClicked().openInventory(scrollin.page(0));
                         }
+                        case "blueprints" -> {
+                            List<ItemStack> itemStacks = new ArrayList<>();
+                            for (File f: Path.of("blueprints").toFile().listFiles()) {
+                                if (!f.isDirectory()) {
+                                    Material material = Material.PAPER;
+                                    try (FileInputStream fileInputStream = new FileInputStream(f)) {
+                                        List<Material> materials = getSortedMaterialsByFrequency(new String(fileInputStream.readAllBytes()));
+                                        for (Material m : materials) {
+                                            if (m.isItem()) material = m;
+                                        }
+
+                                    } catch (IOException ex) {
+                                        throw new RuntimeException(ex);
+                                    }
+
+
+                                    ItemStack itemStack = new ItemStack(material);
+                                    ItemMeta meta = itemStack.getItemMeta();
+                                    meta.displayName(Component.text(f.getAbsolutePath().substring(f.getAbsolutePath().indexOf("/blueprints/")+12)));
+                                    List<Component> lore = new ArrayList<>();
+                                    lore.add(Component.text("blueprint"));
+                                    lore.add(Component.text("blueprint"));
+                                    meta.lore(lore);
+                                    itemStack.setItemMeta(meta);
+                                    itemStacks.add(itemStack);
+                                }
+                            }
+
+                            {
+                                ItemStack addB = new ItemStack(Material.PAPER);
+                                ItemMeta meta = addB.getItemMeta();
+                                meta.setHideTooltip(true);
+                                meta.setItemModel(NamespacedKey.fromString("general:button/add"));
+                                List<Component> lore = new ArrayList<>();
+                                lore.add(Component.text("createBlueprint"));
+                                lore.add(Component.text("createBlueprint"));
+                                meta.lore(lore);
+                                addB.setItemMeta(meta);
+                                itemStacks.add(addB);
+                            }
+
+                            e.getWhoClicked().sendMessage(Component.text("Open Blueprints"));
+                            Scrollin scrollin = new Scrollin(itemStacks);
+
+                            e.getWhoClicked().openInventory(scrollin.page(0));
+                        }
                     }
                 }
                 case "add-sexion" -> {
@@ -197,6 +252,47 @@ public class ScrollinListener implements Listener {
                     }
 
                 }
+                case "createBlueprint" -> {
+                    HumanEntity player = e.getWhoClicked();
+                    Location location = player.getTargetBlockExact(100).getLocation();
+                    player.sendMessage(location.toString());
+                    BlueprintBuilder blueprintBuilder = new BlueprintBuilder(location.clone().add(2,1,2),location.clone().add(-2,5,-2));
+                    blueprintBuilder.redactor((Player) player);
+                    Sxlib.get().blueprintMap.put(blueprintBuilder.getId().toString(), blueprintBuilder);
+                    player.closeInventory();
+                }
+                case "blueprint" -> {
+                    if (Sxlib.get().blueprintViewers.containsKey(e.getWhoClicked().getName())) {
+                        BlueprintViewer blueprintViewer = Sxlib.get().blueprintViewers.get(e.getWhoClicked().getName());
+                        for (BlockDisplay boba : blueprintViewer.displays.values()) {
+                            boba.remove();
+                        }
+                        blueprintViewer.outline.deleteAll();
+                    }
+
+                    ItemStack itemStack = e.getCurrentItem().clone();
+                    BlueprintViewer viewer = new BlueprintViewer(PlainTextComponentSerializer.plainText().serialize(itemStack.displayName()).replaceAll("\\[","").replaceAll("]",""));
+                    viewer.setup(e.getWhoClicked().getTargetBlockExact(100).getLocation().add(e.getWhoClicked().getTargetBlockFace(100).getDirection()));
+                    Sxlib.get().blueprintViewers.put(e.getWhoClicked().getName(),viewer);
+
+                    ItemStack item = new ItemStack(Material.PAPER);
+                    ItemMeta meta = item.getItemMeta();
+                    meta.displayName(Component.text(""));
+                    meta.setHideTooltip(true);
+                    meta.setItemModel(NamespacedKey.fromString("general:button/nothing"));
+                    item.setItemMeta(meta);
+
+
+
+                    Map<Integer, ItemStack> items = new HashMap<>();
+                    for (int i = 0; i<=8;i++) {
+                        items.put(i,e.getWhoClicked().getInventory().getItem(i));
+                        e.getWhoClicked().getInventory().setItem(i,item);
+                    }
+
+                    Sxlib.get().oldHotBars.put(e.getWhoClicked().getName(),items);
+                    e.getWhoClicked().closeInventory();
+                }
             }
         }
 
@@ -206,4 +302,36 @@ public class ScrollinListener implements Listener {
             if (e.getSlot() == 0) e.getWhoClicked().closeInventory();
         }
     }
+
+
+    public static List<Material> getSortedMaterialsByFrequency(String jsonArrayString) {
+        JSONArray jsonArray = new JSONArray(jsonArrayString);
+        Map<Material, Integer> materialCount = new HashMap<>();
+
+        // Подсчёт частоты материалов
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject jsonObject = jsonArray.getJSONObject(i);
+            if (jsonObject.has("type")) {
+                try {
+                    Material material = Material.valueOf(jsonObject.getString("type").toUpperCase());
+                    materialCount.put(material, materialCount.getOrDefault(material, 0) + 1);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Неизвестный материал: " + jsonObject.getString("type"));
+                }
+            }
+        }
+
+        // Сортируем материалы по частоте в порядке убывания
+        List<Map.Entry<Material, Integer>> sortedMaterials = new ArrayList<>(materialCount.entrySet());
+        sortedMaterials.sort((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()));
+
+        // Возвращаем отсортированный список материалов
+        List<Material> sortedMaterialList = new ArrayList<>();
+        for (Map.Entry<Material, Integer> entry : sortedMaterials) {
+            sortedMaterialList.add(entry.getKey());
+        }
+
+        return sortedMaterialList.reversed();
+    }
+
 }

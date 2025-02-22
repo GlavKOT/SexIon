@@ -197,12 +197,7 @@ public class CommandListener {
         plugin.getCommand("blueprint").setExecutor(new CommandExecutor() {
             @Override
             public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
-                Player player = (Player) commandSender;
-                Location location = player.getTargetBlockExact(100).getLocation();
-                player.sendMessage(location.toString());
-                BlueprintBuilder blueprintBuilder = new BlueprintBuilder(location.clone().add(2,1,2),location.clone().add(-2,5,-2));
-                blueprintBuilder.redactor(player);
-                Sxlib.get().blueprintMap.put(blueprintBuilder.getId().toString(), blueprintBuilder);
+
                 return false;
             }
         });

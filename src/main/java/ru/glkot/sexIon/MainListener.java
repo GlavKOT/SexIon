@@ -8,6 +8,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import net.wesjd.anvilgui.AnvilGUI;
 import org.bukkit.*;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -19,6 +22,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Intersectiond;
+import org.joml.Vector2d;
+import org.joml.Vector3d;
 import ru.glkot.sexIon.menus.Buttons;
 import ru.glkot.sexIon.playerdata.PlayerData;
 
@@ -122,6 +128,25 @@ public class MainListener implements Listener {
 
     @EventHandler
     public void PlTic(PlayerInteractEvent e) {
+        if (Sxlib.get().blueprintViewers.containsKey(e.getPlayer().getName())) {
+            if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) {
+                BlueprintViewer blueprintViewer = Sxlib.get().blueprintViewers.get(e.getPlayer().getName());
+                blueprintViewer.place();
+            } else {
+                BlueprintViewer blueprintViewer = Sxlib.get().blueprintViewers.get(e.getPlayer().getName());
+                for (BlockDisplay boba : blueprintViewer.displays.values()) {
+                    boba.remove();
+                }
+                for (UUID itemDisplay : blueprintViewer.outline.getFaces().values()) {
+                    Bukkit.getEntity(itemDisplay).remove();
+                }
+                Sxlib.get().blueprintViewers.remove(e.getPlayer().getName());
+                for (Map.Entry<Integer, ItemStack> entry : Sxlib.get().oldHotBars.get(e.getPlayer().getName()).entrySet()) {
+                    e.getPlayer().getInventory().setItem(entry.getKey(),entry.getValue());
+                }
+            }
+        }
+
         if (Sxlib.get().titleTickers.contains(e.getPlayer().getName())) {
 
 
@@ -135,6 +160,9 @@ public class MainListener implements Listener {
                 player.removeScoreboardTag("bluered." + bluetag);
                 Sxlib.get().titleTickers.remove(player.getName());
                 blueprintBuilder.outline.deleteAll();
+                for (Map.Entry<Integer, ItemStack> entry : Sxlib.get().oldHotBars.get(e.getPlayer().getName()).entrySet()) {
+                    player.getInventory().setItem(entry.getKey(),entry.getValue());
+                }
             };
             if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) {
 
@@ -155,7 +183,7 @@ public class MainListener implements Listener {
 
                 builder.plugin(JavaPlugin.getPlugin(Sxlib.class));
                 builder.onClick(( slot,stateSnapshot) -> {
-                Path.of("blueprints").toFile().mkdir();
+                Path.of("blueprints", stateSnapshot.getText()+".blueprint").toFile().getParentFile().mkdirs();
                 try (FileWriter fileWriter = new FileWriter(Path.of("blueprints", stateSnapshot.getText()+".blueprint").toFile())) {
                     fileWriter.write(blueprintBuilder.getBlocks().toString());
                     fileWriter.flush();
@@ -176,6 +204,8 @@ public class MainListener implements Listener {
             e.setCancelled(true);
         }
     }
+
+
 
     @EventHandler
     public void Gweda(InventoryOpenEvent e) {
@@ -214,14 +244,17 @@ public class MainListener implements Listener {
             }
             BlueprintBuilder blueprintBuilder = Sxlib.get().blueprintMap.get(bluetag.substring(8));
 
-            Map<String, Vector> h = getNearestPointOnFace(event.getPlayer().getLocation().add(0, event.getPlayer().getEyeHeight(),0), blueprintBuilder.vertex1.toVector(), blueprintBuilder.vertex2.toVector());
+            Map<String, Vector3d> h = getNearestPointOnFaceJOML(event.getPlayer().getLocation().add(0, event.getPlayer().getEyeHeight(),0), blueprintBuilder.vertex1.toVector().toVector3d(), blueprintBuilder.vertex2.toVector().toVector3d());
 
-
+            System.out.println(h);
             Vector v1 = blueprintBuilder.vertex1.toVector();
             Vector v2 = blueprintBuilder.vertex2.toVector();
 
-            Vector c = h.get("cord");
-            Vector d = h.get("direction");
+            Vector c = Vector.fromJOML(h.get("cord"));
+            Vector d = Vector.fromJOML(h.get("direction"));
+
+            System.out.println(c);
+            System.out.println(d);
 
             d.multiply(Math.abs(newSlot - previousSlot));
 
@@ -254,93 +287,102 @@ public class MainListener implements Listener {
             event.getPlayer().getInventory().setHeldItemSlot(4);
 
         }
+
+        if (Sxlib.get().blueprintViewers.containsKey(event.getPlayer().getName())) {
+            int previousSlot = event.getPreviousSlot();
+            int newSlot = event.getNewSlot();
+
+            String direction;
+
+            if ((newSlot > previousSlot)) {
+                direction = "down";
+            } else if ((newSlot < previousSlot)) {
+                direction = "up";
+            } else {
+                direction = "hz"; // На случай ошибок (быть не должно)
+            }
+            BlueprintViewer blueprintViewer = Sxlib.get().blueprintViewers.get(event.getPlayer().getName());
+
+            Vector v1 = blueprintViewer.getMinCord();
+            Vector v2 = blueprintViewer.getMaxCord().add(new Vector(1,1,1));
+
+            System.out.println(v1);
+            System.out.println(v2);
+
+            Map<String, Vector3d> h = getNearestPointOnFaceJOML(event.getPlayer().getLocation().add(0, event.getPlayer().getEyeHeight(),0).clone(), v1.clone().toVector3d(), v2.clone().toVector3d());
+
+
+
+
+            Vector c = Vector.fromJOML(h.get("cord")).clone();
+            Vector d = Vector.fromJOML(h.get("direction")).clone();
+
+            d.multiply(Math.abs(newSlot - previousSlot));
+
+
+            if (direction.equals("up")) d.multiply(-1);
+            if (isInside(event.getPlayer().getLocation(), v1, v2)) d.multiply(-1);
+
+            System.out.println(v1);
+            System.out.println(v2);
+            System.out.println(h);
+
+            blueprintViewer.origin.add(d);
+            for (BlockDisplay b : blueprintViewer.displays.values()) {
+                b.setInterpolationDelay(0);
+                b.setInterpolationDuration(4);
+                b.setTeleportDuration(4);
+                b.teleport(b.getLocation().add(d));
+            }
+            for (UUID uuid : blueprintViewer.outline.getIDS()) {
+                Bukkit.getEntity(uuid).teleport(Bukkit.getEntity(uuid).getLocation().add(d));
+            }
+            if (d.isZero()) {
+                if (direction.equals("up")) blueprintViewer.rotate(1);
+                    else blueprintViewer.rotate(2);
+            }
+            ParticleBuilder particleBuilder = new ParticleBuilder(Particle.WAX_OFF);
+            particleBuilder.location(event.getPlayer().getLocation().add(0, event.getPlayer().getEyeHeight(),0));
+            particleBuilder.spawn();
+
+            event.setCancelled(true);
+            event.getPlayer().getInventory().setHeldItemSlot(4);
+
+        }
     }
 
+    public static Map<String, Vector3d> getNearestPointOnFaceJOML(Location playerLocation, Vector3d point1, Vector3d point2) {
+        // Определяем min/max координаты куба
+        Vector3d min = new Vector3d(Math.min(point1.x, point2.x), Math.min(point1.y, point2.y), Math.min(point1.z, point2.z));
+        Vector3d max = new Vector3d(Math.max(point1.x, point2.x), Math.max(point1.y, point2.y), Math.max(point1.z, point2.z));
 
-    public static Map<String, Vector> getNearestPointOnFace(Location playerLocation, Vector point1, Vector point2) {
-        // Определяем границы куба (AABB)
-        double minX = Math.min(point1.getX(), point2.getX());
-        double maxX = Math.max(point1.getX(), point2.getX());
-        double minY = Math.min(point1.getY(), point2.getY());
-        double maxY = Math.max(point1.getY(), point2.getY());
-        double minZ = Math.min(point1.getZ(), point2.getZ());
-        double maxZ = Math.max(point1.getZ(), point2.getZ());
+        // Начальная точка и направление луча
+        Vector3d rayOrigin = new Vector3d(playerLocation.getX(), playerLocation.getY(), playerLocation.getZ());
+        Vector3d rayDir = new Vector3d(playerLocation.getDirection().getX(),
+                playerLocation.getDirection().getY(),
+                playerLocation.getDirection().getZ()).normalize();
 
-        // Позиция игрока и направление взгляда
-        Vector rayOrigin = playerLocation.toVector();
-        Vector rayDir = playerLocation.getDirection().normalize();
+        Vector2d result = new Vector2d();
+        boolean intersects = Intersectiond.intersectRayAab(rayOrigin, rayDir, min, max, result);
 
-        // Ищем пересечение луча с каждой плоскостью куба
-        double[] tValues = new double[6];
-        Vector[] hitPoints = new Vector[6];
-        Vector[] faceNormals = {
-                new Vector(-1, 0, 0), new Vector(1, 0, 0),  // Лево, право
-                new Vector(0, -1, 0), new Vector(0, 1, 0),  // Низ, верх
-                new Vector(0, 0, -1), new Vector(0, 0, 1)   // Задняя, передняя грань
-        };
-
-        double tMin = Double.POSITIVE_INFINITY;
-        Vector nearestHit = null;
-        Vector nearestNormal = null;
-
-        // Проверяем пересечение с каждой гранью
-        for (int i = 0; i < 6; i++) {
-            double t = 0;
-            Vector planePoint = new Vector();
-
-            switch (i) {
-                case 0:
-                    t = (minX - rayOrigin.getX()) / rayDir.getX();
-                    planePoint = new Vector(minX, 0, 0);
-                    break; // LEFT
-                case 1:
-                    t = (maxX - rayOrigin.getX()) / rayDir.getX();
-                    planePoint = new Vector(maxX, 0, 0);
-                    break; // RIGHT
-                case 2:
-                    t = (minY - rayOrigin.getY()) / rayDir.getY();
-                    planePoint = new Vector(0, minY, 0);
-                    break; // BOTTOM
-                case 3:
-                    t = (maxY - rayOrigin.getY()) / rayDir.getY();
-                    planePoint = new Vector(0, maxY, 0);
-                    break; // TOP
-                case 4:
-                    t = (minZ - rayOrigin.getZ()) / rayDir.getZ();
-                    planePoint = new Vector(0, 0, minZ);
-                    break; // BACK
-                case 5:
-                    t = (maxZ - rayOrigin.getZ()) / rayDir.getZ();
-                    planePoint = new Vector(0, 0, maxZ);
-                    break; // FRONT
-            }
-
-            if (t > 0) { // Проверяем, что точка перед игроком
-                Vector hitPoint = rayOrigin.clone().add(rayDir.clone().multiply(t));
-                ParticleBuilder particleBuilder = new ParticleBuilder(Particle.WAX_OFF);
-                particleBuilder.location(new Location(playerLocation.getWorld(),hitPoint.getX(),hitPoint.getY(),hitPoint.getZ()));
-                particleBuilder.spawn();
-                // Проверяем, находится ли точка пересечения внутри границ куба
-                if (hitPoint.getX() >= minX && hitPoint.getX() <= maxX &&
-                        hitPoint.getY() >= minY && hitPoint.getY() <= maxY &&
-                        hitPoint.getZ() >= minZ && hitPoint.getZ() <= maxZ) {
-
-                    // Выбираем ближайшую точку пересечения
-                    if (t < tMin) {
-                        tMin = t;
-                        nearestHit = hitPoint;
-                        nearestNormal = faceNormals[i];
-                    }
-                }
-            }
+        if (!intersects) {
+            return Map.of("cord", new Vector3d(0, 0, 0), "direction", new Vector3d(0, 0, 0));
         }
 
-        if (nearestHit == null) {
-            return Map.of("cord", new Vector(0, 0, 0), "direction", new Vector(0, 0, 0));
-        }
+        double t = result.x; // Ближайшая точка пересечения
+        Vector3d hitPoint = rayOrigin.add(rayDir.mul(t, new Vector3d())); // Вычисляем точку
 
+        // Определяем, в какую грань попали
+        Vector3d normal = new Vector3d(0, 0, 0);
 
-        return Map.of("cord", nearestHit, "direction", nearestNormal);
+        if (Math.abs(hitPoint.x - min.x) < 0.001) normal.set(-1, 0, 0); // Левая грань
+        else if (Math.abs(hitPoint.x - max.x) < 0.001) normal.set(1, 0, 0); // Правая грань
+        else if (Math.abs(hitPoint.y - min.y) < 0.001) normal.set(0, -1, 0); // Нижняя грань
+        else if (Math.abs(hitPoint.y - max.y) < 0.001) normal.set(0, 1, 0); // Верхняя грань
+        else if (Math.abs(hitPoint.z - min.z) < 0.001) normal.set(0, 0, -1); // Задняя грань
+        else if (Math.abs(hitPoint.z - max.z) < 0.001) normal.set(0, 0, 1); // Передняя грань
+
+        return Map.of("cord", hitPoint, "direction", normal);
     }
 
 
